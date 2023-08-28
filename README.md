@@ -25,7 +25,7 @@ This repository contains an terraform configuration that deploys and configures 
 
 ## Infrastructure Diagram
 
-([Azure Infrastructure](infra.drawio))
+([Infrastructure](images/infrastructure.png))
 
 ## Deployment Steps
 
