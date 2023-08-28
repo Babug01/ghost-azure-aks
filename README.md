@@ -25,7 +25,7 @@ This repository contains an terraform configuration that deploys and configures 
 
 ## Infrastructure Diagram
 
-([Infrastructure](images/infrastructure.png))
+![Architecture](images/infrastructure.png)
 
 ## Deployment Steps
 
