@@ -1,0 +1,49 @@
+name: DevOps - GAT
+
+pool:
+  vmImage: ubuntu-latest
+
+trigger:
+  batch: true
+  branches:
+    include:
+      - master
+
+  paths:
+    include:
+      - pipelines/infra-pipelines/infra.yaml
+      - terraform/*
+
+variables:
+  - group: terraform-global
+  - name: project
+    value: sytac
+  - name: terraform_version
+    value: 1.5.6
+
+stages:
+  - stage: nonprod
+    dependsOn: []
+    displayName: Non-Prod Cluster
+    variables:
+      - group: azure-deploy
+    jobs:
+      - template: templates/env.yaml
+        parameters:
+          project: ${{ variables.project }}
+          environment: nonprod
+          subscriptionId: $(SUBSCRIPTION-ID)
+
+  - stage: prod
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranchName'], 'master'))
+    dependsOn:
+      - nonprod
+    displayName: PROD Cluster
+    variables:
+      - group: azure-deploy
+    jobs:
+      - template: templates/env.yaml
+        parameters:
+          project: ${{ variables.project }}
+          environment: prod
+          subscriptionId: $(SUBSCRIPTION-ID)

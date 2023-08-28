@@ -1,0 +1,50 @@
+parameters:
+  - name: dryrun
+    default: false
+  - name: environment
+  - name: project
+  - name: dependsOn
+    type: object
+    default: []
+  - name: deployEnvironment
+    default: terraform-devops
+  - name: subscriptionId
+    type: string
+
+jobs:
+  - deployment: apply_${{ parameters.environment }}
+    condition: and(succeeded(), eq('${{ parameters.dryrun }}', false))
+    dependsOn: ${{ parameters.dependsOn }}
+    displayName: ${{ parameters.project }} - ${{ parameters.environment }} - Terraform Apply
+    environment: ${{ parameters.deployEnvironment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: none
+
+            - download: current
+              artifact: ${{ parameters.environment }}
+
+            - task: ExtractFiles@1
+              inputs:
+                archiveFilePatterns: $(Pipeline.Workspace)/${{ parameters.environment }}/${{ parameters.environment }}.tgz
+                cleanDestinationFolder: false
+              displayName: extract artifact
+
+            - bash: |
+                cd /tmp
+                curl -L https://releases.hashicorp.com/terraform/$(terraform_version)/terraform_$(terraform_version)_linux_amd64.zip  > terraform.zip
+                unzip terraform.zip
+                sudo mv terraform /usr/local/bin/terraform
+                terraform version
+              displayName: Override Terraform version
+
+            - bash: terraform apply -input=false $(Build.BuildId).tfplan
+              env:
+                ARM_TENANT_ID: $(ARM-TENANT-ID)
+                ARM_CLIENT_ID: $(aks-service-principal-client-id)
+                ARM_CLIENT_SECRET: $(aks-service-principal-client-secret)
+                ARM_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+              displayName: terraform apply
+              workingDirectory: terraform/${{ parameters.project }}

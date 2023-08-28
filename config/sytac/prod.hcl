@@ -1,0 +1,5 @@
+subscription_id      = ""
+resource_group_name  = ""
+storage_account_name = "satfsateghost"
+container_name       = "prod"
+key                  = "prod.tfstate"

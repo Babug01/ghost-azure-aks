@@ -1,0 +1,65 @@
+parameters:
+  - name: environment
+    type: string
+  - name: k8sContext
+    type: string
+  - name: k8sNamespace
+    default: default
+    type: string
+  - name: chartPath
+    type: string
+  - name: releaseName
+    type: string
+  - name: extraHelmArgs
+    default: ""
+    type: string
+  - name: subscriptionId
+    default: ""
+    type: string
+  - name: tenantId
+    default: ""
+    type: string
+  - name: resourceGroup
+    default: ""
+    type: string
+jobs:
+  - deployment:
+    environment: ${{ parameters.environment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              persistCredentials: true
+
+            - task: HelmInstaller@1
+              inputs:
+                helmVersionToInstall: $(helm_version)
+
+            - bash: |
+                set -feuo pipefail
+                az login --service-principal --username='$(SP_APP_ID)' --password='$(SP_PASSWD)' --tenant="${{ parameters.tenantId }}"
+                az account set -s "${{ parameters.subscriptionId }}"
+                az aks get-credentials -n "${{ parameters.k8sContext }}" -g "${{ parameters.resourceGroup }}"
+                curl -LO "https://github.com/Azure/kubelogin/releases/download/$(kubelogin_version)/kubelogin-linux-amd64.zip"
+                unzip kubelogin-linux-amd64.zip
+                sudo mv bin/linux_amd64/kubelogin /usr/bin/kubelogin
+                kubelogin convert-kubeconfig -l azurecli
+              displayName: Authenticate AKS
+
+            - bash: |
+                cd ${{ parameters.releaseName }}/
+                set -feuo pipefail
+                set -x
+                # deploy chart
+                helm upgrade --install \
+                  --atomic \
+                  --timeout 5m \
+                  --kube-context="${{ parameters.k8sContext }}" --namespace="${{ parameters.k8sNamespace }}" \
+                  ${{ parameters.extraHelmArgs }} \
+                  "${{ parameters.releaseName }}" "${{ parameters.chartPath }}" 
+
+                # wait for deployment rollout to complete
+                kubectl --context="${{ parameters.k8sContext }}" --namespace="${{ parameters.k8sNamespace }}" \
+                  rollout status --timeout=45m -w "deployment/${{ parameters.releaseName }}"
+              displayName: Deploy helm chart

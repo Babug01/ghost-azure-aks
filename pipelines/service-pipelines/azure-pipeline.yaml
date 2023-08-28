@@ -1,0 +1,55 @@
+pool:
+  vmImage: ubuntu-latest
+
+trigger:
+  batch: true
+  branches:
+    include:
+      - develop
+  paths:
+    include:
+      - helm/*
+      - pipelines/service-pipelines/azure-pipeline.yaml
+
+variables:
+  - group: azure-deploy # will set aks-service-principal-client-id and secret
+  - name: acr_registry
+    value: acr_registry_name.azurecr.io
+  - name: helm_version
+    value: 3.9.0
+  - name: kubelogin_version
+    value: v0.0.24
+
+resources:
+  - repo: self
+
+stages:
+  - stage: build
+    displayName: Build Ghost Image
+    jobs:
+      - job: build
+        displayName: Build and Push Image
+        steps:
+          - bash: |
+              docker build -t ghost:latest .
+              docker login $(acr_registry) --username $(SP_APP_ID) --password $(SP_PASSWD)
+              docker tag ghost $(acr_registry)/ghost
+              docker push $(acr_registry)/ghost
+            workingDirectory: ghostapp/
+  - stage: deploy_ghost
+    displayName: Deploy Ghost to aks
+    dependsOn: []
+    lockBehavior: runLatest
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - template: deploy_ghost.yaml
+        parameters:
+          subscriptionId: ""
+          tenantI: ""
+          resourceGroup: ""
+          chartPath: "helm/ghost"
+          releaseName: "ghost"
+          environment: "azuredevops_environment"
+          k8sContext: "kubernetes_cluster_name"
+          k8sNamespace: "k8s_namespace"
+          extraHelmArgs: -f helm/environment/prod/values-ghost.yaml

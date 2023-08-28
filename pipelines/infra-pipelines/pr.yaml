@@ -1,0 +1,39 @@
+name: DevOps - Infra PR
+
+pool:
+  vmImage: ubuntu-latest
+
+trigger:
+  batch: true
+
+pr:
+  branches:
+    include:
+      - feature/*
+    exclude:
+      - features/experimental/*
+
+  paths:
+    include:
+      - pipelines/infra-pipelines/pr.yaml
+      - terraform/*
+
+variables:
+  - group: terraform-global
+  - name: project
+    value: sytac
+  - name: terraform_version
+    value: 1.5.6
+
+stages:
+  - stage: nonprod
+    dependsOn: []
+    displayName: Non-Prod Cluster
+    variables:
+      - group: azure-deploy
+    jobs:
+      - template: templates/pr.yaml
+        parameters:
+          project: ${{ variables.project }}
+          environment: nonprod
+          subscriptionId: $(SUBSCRIPTION-ID)

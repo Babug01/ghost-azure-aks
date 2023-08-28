@@ -1,0 +1,25 @@
+{{- if .Values.PersistentVolume.enabled -}}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.PersistentVolume.name }}
+spec:
+  capacity:
+    storage: 5Ti
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.PersistentVolume.storageClassName }}
+  azureFile:
+    secretName: {{ .Values.PersistentVolume.secretName }}
+    shareName: {{ .Values.PersistentVolume.shareName }}
+    readOnly: false
+  mountOptions:
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=1000
+    - gid=1000
+    - mfsymlinks
+    - nobrl
+    - cache=none
+
+{{- end }}

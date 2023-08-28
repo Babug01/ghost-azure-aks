@@ -1,0 +1,34 @@
+parameters:
+  - name: dryrun
+    default: true
+  - name: environment
+  - name: project
+  - name: dependsOn
+    type: object
+    default: []
+  - name: subscriptionId
+    type: string
+
+jobs:
+  - template: terraform/lint.yaml
+    parameters:
+      project: ${{ parameters.project }}
+      environment: ${{ parameters.environment }}
+
+  - template: terraform/plan.yaml
+    parameters:
+      dryrun: ${{ parameters.dryrun }}
+      dependsOn:
+        - lint_${{ parameters.environment }}
+      environment: ${{ parameters.environment }}
+      project: ${{ parameters.project }}
+      subscriptionId: ${{ parameters.subscriptionId }}
+
+  - template: terraform/apply.yaml
+    parameters:
+      dryrun: ${{ parameters.dryrun }}
+      dependsOn:
+        - plan_${{ parameters.environment }}
+      environment: ${{ parameters.environment }}
+      project: ${{ parameters.project }}
+      subscriptionId: ${{ parameters.subscriptionId }}

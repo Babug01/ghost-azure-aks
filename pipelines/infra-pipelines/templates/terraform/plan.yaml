@@ -1,0 +1,70 @@
+parameters:
+  - name: dryrun
+    type: boolean
+  - name: environment
+  - name: project
+  - name: dependsOn
+    type: object
+    default: []
+  - name: additionalArgs
+    type: string
+    default: ""
+  - name: subscriptionId
+    type: string
+
+jobs:
+  - job: plan_${{ parameters.environment }}
+    dependsOn: ${{ parameters.dependsOn }}
+    variables:
+      - name: envTFConfig
+        value: $(Build.SourcesDirectory)/config/${{ parameters.project }}/${{ parameters.environment }}.tfvars
+      - name: envTFBackendConfig
+        value: $(Build.SourcesDirectory)/config/${{ parameters.project }}/${{ parameters.environment }}.hcl
+      - name: dryRunArg
+        ${{ if parameters.dryrun }}:
+          value: "-lock=false"
+    displayName: ${{ parameters.project }} - ${{ parameters.environment }} - Terraform Plan
+    steps:
+      - checkout: self
+        clean: true
+
+      - bash: |
+          cd /tmp
+          curl -L https://releases.hashicorp.com/terraform/$(terraform_version)/terraform_$(terraform_version)_linux_amd64.zip  > terraform.zip
+          unzip terraform.zip
+          sudo mv terraform /usr/local/bin/terraform
+          terraform version
+        displayName: Override Terraform version
+
+      - bash: terraform init -input=false -backend-config=$(envTFBackendConfig)
+        env:
+          ARM_TENANT_ID: $(ARM-TENANT-ID)
+          ARM_CLIENT_ID: $(aks-service-principal-client-id)
+          ARM_CLIENT_SECRET: $(aks-service-principal-client-secret)
+          ARM_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+        displayName: terraform init
+        workingDirectory: terraform/${{ parameters.project }}
+
+      - bash: terraform plan -input=false -out $(Build.BuildId).tfplan -var-file=$(envTFConfig) ${{ parameters.additionalArgs }} $(dryRunArg)
+        env:
+          ARM_TENANT_ID: $(ARM-TENANT-ID)
+          ARM_CLIENT_ID: $(aks-service-principal-client-id)
+          ARM_CLIENT_SECRET: $(aks-service-principal-client-secret)
+          ARM_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+        displayName: terraform plan
+        workingDirectory: terraform/${{ parameters.project }}
+
+      - task: ArchiveFiles@2
+        inputs:
+          rootFolderOrFile: .
+          includeRootFolder: false
+          archiveType: tar
+          tarCompression: gz
+          archiveFile: $(Build.ArtifactStagingDirectory)/${{ parameters.environment }}.tgz
+        displayName: archive artifact
+
+      - task: PublishBuildArtifacts@1
+        inputs:
+          pathToPublish: $(Build.ArtifactStagingDirectory)/${{ parameters.environment }}.tgz
+          artifactName: ${{ parameters.environment }}
+        displayName: publish artifact

@@ -1,0 +1,14 @@
+{{- if .Values.PersistentVolumeClaim.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.PersistentVolumeClaim.name }}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.PersistentVolumeClaim.storageClassName }}
+  resources:
+    requests:
+      storage: 5Ti
+{{- end }}

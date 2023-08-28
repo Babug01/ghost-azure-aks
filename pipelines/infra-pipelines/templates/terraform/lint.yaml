@@ -1,0 +1,18 @@
+parameters:
+  - name: project
+  - name: environment
+  - name: dependsOn
+    type: object
+    default: []
+
+jobs:
+  - job: lint_${{ parameters.environment }}
+    dependsOn: ${{ parameters.dependsOn }}
+    displayName: ${{ parameters.project }} - ${{ parameters.environment }} - Terraform Lint
+    steps:
+      - bash: terraform fmt -write=false -check -diff
+        displayName: terraform lint
+        workingDirectory: "terraform/${{ parameters.project }}"
+      - bash: terraform fmt -write=false -check -diff
+        displayName: terraform lint environment config
+        workingDirectory: "config/${{ parameters.project}}"

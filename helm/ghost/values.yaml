@@ -1,0 +1,96 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# Default values for ghost app
+global:
+  namespace: "tools"
+
+imagePullSecrets: []
+nameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  httptargetPort: 2368
+
+containerPort: 2368
+
+podAnnotations: {}
+podSecurityContext:
+  enabled: false
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 2000
+
+containerSecurityContext:
+  enabled: false
+  readOnlyRootFilesystem: true
+  runAsUser: 1000
+  runAsGroup: 1000
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+autoscaling:
+  enabled: false
+  apiVersion: autoscaling/v2
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+maxSurge: 1
+maxUnavailable: 50%
+
+envVars: ""
+extraENV: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+volumeMounts:
+  enabled: false
+  mountPath: /var/lib/ghost/content/
+  name: content
+  vmmountPath: /tmp
+  vmname: sec-ctx-vol
+
+volumes:
+  enabled: false
+  name: sec-ctx-vol
+  pv:
+    name: content
+  pvc:
+    name: pvc-ghost
+
+PersistentVolume:
+  enabled: false
+  name: "pv-ghost"
+  secretName: "secret-pv-ghost"
+  storageClassName: azurefile
+  shareName: ghostcontentfiles
+
+PersistentVolumeClaim:
+  enabled: false
+  name: "pvc-ghost"
+  storageClassName: azurefile
