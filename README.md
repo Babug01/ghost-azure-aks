@@ -102,5 +102,7 @@ The terraform folder in this repository provisions the following resources:
 - [Ghost Docker Image](https://hub.docker.com/_/ghost)
 - [Terraform Azure Documentation](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
 - [Azure Documentation](https://learn.microsoft.com/en-us/docs/)
+- [Bicep Playground](https://bicepdemo.z22.web.core.windows.net/)
+- [ARM Template Designer](http://armviz.io/designer)
 
 ---
